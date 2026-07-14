@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, memo } from 'react';
 import { Pressable, View, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -8,6 +8,7 @@ import Animated, {
   withSequence,
   withTiming,
   Easing,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { Color, ThemeName } from '../types';
 import { getLiquidColor } from '../utils/colors';
@@ -41,10 +42,11 @@ const selectedTheme: Record<ThemeName, { border: string; glow: string }> = {
   Candy: { border: '#FFB6C1', glow: '#FFB6C1' },
 };
 
-export default function Tube({
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function TubeComponent({
   tube,
   capacity = 4,
-  index: _index,
   selected,
   onPress,
   highlighted = false,
@@ -52,12 +54,13 @@ export default function Tube({
 }: TubeProps) {
   const segmentHeight = TUBE_HEIGHT / capacity;
 
+  // Shared Values for Reanimated
   const lift = useSharedValue(0);
   const pulse = useSharedValue(1);
 
   useEffect(() => {
     lift.value = selected ? -10 : 0;
-  }, [selected]);
+  }, [selected, lift]);
 
   useEffect(() => {
     if (highlighted) {
@@ -66,57 +69,57 @@ export default function Tube({
           withTiming(1.04, { duration: 800, easing: Easing.inOut(Easing.ease) }),
           withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) })
         ),
-        -1,
+        -1, // Loop infinitely
         true
       );
     } else {
-      pulse.value = 1;
+      // Safely cancel the repeat animation before resetting
+      cancelAnimation(pulse);
+      pulse.value = withTiming(1, { duration: 300 });
     }
-  }, [highlighted]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
+    return () => cancelAnimation(pulse); // Cleanup on unmount
+  }, [highlighted, pulse]);
+
+  const animatedWrapperStyle = useAnimatedStyle(() => ({
     transform: [
       { translateY: withSpring(lift.value, { damping: 15, stiffness: 150 }) },
+      { scale: pulse.value },
     ],
-  }));
-
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulse.value }],
   }));
 
   const glass = glassTheme[theme];
   const sel = selectedTheme[theme];
 
-  const segments: React.ReactNode[] = [];
-  for (let i = capacity - 1; i >= 0; i--) {
+  // Declarative segment generation
+  const segments = Array.from({ length: capacity }).map((_, reversedIndex) => {
+    const i = capacity - 1 - reversedIndex;
     const color = tube[i];
     const isEmpty = color === undefined;
     const isBottomSegment = i === 0;
-    const isTopFilled = color !== undefined && (i === capacity - 1 || tube[i + 1] === undefined);
+    const isTopFilled = !isEmpty && (i === capacity - 1 || tube[i + 1] === undefined);
 
-    segments.push(
+    return (
       <View
-        key={i}
+        key={`segment-${i}`}
         style={[
           styles.segment,
           { height: segmentHeight },
-          !isEmpty && { backgroundColor: getLiquidColor(color!, theme) },
+          !isEmpty && { backgroundColor: getLiquidColor(color, theme) },
           !isEmpty && isBottomSegment && styles.segmentBottomRounded,
           !isEmpty && isTopFilled && styles.segmentTopRounded,
         ]}
       />
     );
-  }
-
-  const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+  });
 
   return (
     <AnimatedPressable
       onPress={onPress}
-      style={[styles.wrapper, animatedStyle]}
+      style={[styles.wrapper, animatedWrapperStyle]}
       className="active:opacity-80"
     >
-      <Animated.View
+      <View
         style={[
           styles.tube,
           {
@@ -124,15 +127,13 @@ export default function Tube({
             borderColor: selected ? sel.border : glass.border,
             borderWidth: selected ? 2.5 : 1.5,
           },
-          selected && {
+          selected ? {
             shadowColor: sel.glow,
             shadowOpacity: 0.6,
             shadowRadius: 10,
             shadowOffset: { width: 0, height: 0 },
             elevation: 10,
-          },
-          highlighted && pulseStyle,
-          !selected && {
+          } : {
             shadowColor: '#000',
             shadowOpacity: 0.2,
             shadowRadius: 4,
@@ -143,7 +144,7 @@ export default function Tube({
       >
         <View style={[styles.rim, { backgroundColor: glass.border }]} />
         <View style={styles.segmentsContainer}>{segments}</View>
-      </Animated.View>
+      </View>
     </AnimatedPressable>
   );
 }
@@ -186,4 +187,19 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 6,
     borderTopRightRadius: 6,
   },
+});
+
+// Export as Memoized Component
+export default memo(TubeComponent, (prevProps, nextProps) => {
+  // Deep check the tube array to prevent massive re-renders when other tubes change
+  const isTubeEqual = 
+    prevProps.tube.length === nextProps.tube.length &&
+    prevProps.tube.every((val, index) => val === nextProps.tube[index]);
+
+  return (
+    isTubeEqual &&
+    prevProps.selected === nextProps.selected &&
+    prevProps.highlighted === nextProps.highlighted &&
+    prevProps.theme === nextProps.theme
+  );
 });

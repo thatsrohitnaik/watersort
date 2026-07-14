@@ -1,8 +1,8 @@
 import { Board, Move } from '../types';
 import { PriorityQueue } from './PriorityQueue';
-import { heuristic } from './Heuristics';
 import { getValidMoves, applyMove, isSolved } from '../engine/RuleEngine';
-import { serializeBoard } from '../engine/Serializer';
+import { canonicalKey } from './Serializer';
+import { heuristic } from './Heuristics';
 
 interface AStarState {
   board: Board;
@@ -19,15 +19,16 @@ export function solve(board: Board): Move[] | null {
   const pq = new PriorityQueue<AStarState>((a, b) => a.f - b.f);
   pq.push(start);
   const visited = new Map<string, number>();
-  visited.set(serializeKey(board), 0);
+  visited.set(canonicalKey(board), 0);
 
   while (!pq.isEmpty()) {
     const current = pq.pop()!;
     if (isSolved(current.board)) return reconstructPath(current);
+
     const moves = getValidMoves(current.board);
     for (const move of moves) {
       const newBoard = applyMove(current.board, move);
-      const key = serializeKey(newBoard);
+      const key = canonicalKey(newBoard);
       const g = current.g + 1;
       if (visited.has(key) && visited.get(key)! <= g) continue;
       visited.set(key, g);
@@ -36,15 +37,6 @@ export function solve(board: Board): Move[] | null {
     }
   }
   return null;
-}
-
-function serializeKey(board: Board): string {
-  const normalized = board.tubes
-    .filter(t => t.length > 0)
-    .map(t => t.join(''))
-    .sort()
-    .join('|');
-  return normalized;
 }
 
 function reconstructPath(state: AStarState): Move[] {

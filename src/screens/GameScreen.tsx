@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
 import { useLevelStore } from '../store/levelStore';
 import GameBoard from '../components/GameBoard';
+import AdPlaceholder from '../components/AdPlaceholder';
 import { getTheme } from '../utils/themes';
 import { getValidMoves } from '../engine/RuleEngine';
 import { useHaptics } from '../hooks/useHaptics';
@@ -355,11 +356,12 @@ export default function GameScreen() {
                 width: width * 0.8,
                 opacity: victoryOpacity,
                 transform: [{ scale: victoryScale }],
+                padding: 10
               }}
             >
+              <Text className="text-5xl mb-2">🎉</Text>
               <Text className="text-3xl font-bold mb-2" style={{ color: theme.success }}>Level Complete!</Text>
-              <Text className="text-5xl mb-4">🎉</Text>
-              <View className="w-full flex-row justify-around mb-6">
+              <View className="w-full flex-row justify-around mb-4">
                 <View className="items-center">
                   <Text className="text-2xl font-bold" style={{ color: theme.text }}>{moves}</Text>
                   <Text className="text-sm" style={{ color: theme.textSecondary }}>Moves</Text>
@@ -373,6 +375,7 @@ export default function GameScreen() {
                   <Text className="text-sm" style={{ color: theme.textSecondary }}>Hints</Text>
                 </View>
               </View>
+              <AdPlaceholder />
               <TouchableOpacity
                 className="w-full py-3 rounded-xl items-center mb-3"
                 style={{ backgroundColor: theme.primary, opacity: loadingNext ? 0.6 : 1 }}
