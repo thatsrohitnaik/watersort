@@ -1,31 +1,24 @@
 {
   "expo": {
-    "name": "Water Sort Puzzle",
-    "slug": "water-sort-puzzle",
+    "name": "Water Sort",
+    "slug": "watersort",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#E6F4FE",
     "primaryColor": "#3182CE",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#E6F4FE"
-    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.watersort.puzzle"
+      "bundleIdentifier": "com.rohitnaik.watersort"
     },
     "android": {
-      "package": "com.watersort.puzzle",
+      "package": "com.rohitnaik.watersort",
       "versionCode": 1,
       "permissions": [],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -33,12 +26,9 @@
       "bundler": "metro",
       "favicon": "./assets/favicon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "water-sort-puzzle"
-      }
-    },
+    "owner": "thatsrohit",
     "plugins": [
+      "expo-status-bar",
       [
         "expo-build-properties",
         {
@@ -47,13 +37,20 @@
             "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0",
             "enableProguardInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": true
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "enableMinifyInReleaseBuilds": true
           },
           "ios": {
             "deploymentTarget": "16.4"
           }
         }
-      ]
-    ]
+      ],
+      "expo-status-bar"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "468c8553-2a48-4e35-b2b4-0743de9a2bb3"
+      }
+    }
   }
 }
