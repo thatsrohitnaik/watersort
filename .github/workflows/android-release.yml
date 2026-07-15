@@ -28,7 +28,7 @@ jobs:
         run: npm ci
 
       - name: Build Android AAB via EAS
-        run: npx eas build --platform android --profile production --non-interactive
+        run: npx eas-cli build --platform android --profile production --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
