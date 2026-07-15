@@ -28,24 +28,19 @@
     },
     "owner": "thatsrohit",
     "plugins": [
-      "expo-status-bar",
       [
         "expo-build-properties",
         {
           "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35,
-            "buildToolsVersion": "35.0.0",
-            "enableProguardInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": true,
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
             "enableMinifyInReleaseBuilds": true
           },
           "ios": {
             "deploymentTarget": "16.4"
           }
         }
-      ],
-      "expo-status-bar"
+      ]
     ],
     "extra": {
       "eas": {
