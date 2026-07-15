@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Animated, Dimensions, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, useWindowDimensions, Modal, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
@@ -23,6 +23,10 @@ export default function GameScreen() {
   const navigation = useNavigation();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
+
+  // Handle dynamic screen rotation smoothly
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
 
   const board = useGameStore((s) => s.board);
   const initialBoard = useGameStore((s) => s.initialBoard);
@@ -62,7 +66,6 @@ export default function GameScreen() {
   const victoryOpacity = useRef(new Animated.Value(0)).current;
 
   const theme = getTheme(settings.theme);
-  const { width } = Dimensions.get('window');
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const levelLoaded = useRef(false);
@@ -218,7 +221,7 @@ export default function GameScreen() {
       initLevel(data);
       startTimer();
     }
-  }, [level, ensureLevelExists, initLevel, startTimer, navigation]);
+  }, [level, ensureLevelExists, initLevel, startTimer]);
 
   const handleReplay = useCallback(() => {
     setShowVictory(false);
@@ -249,8 +252,161 @@ export default function GameScreen() {
     );
   }
 
+  // --- SUB-RENDERS FOR MODALS ---
+
+  // Normal Vertical View Layout
+  const renderPortraitVictory = () => (
+    <ScrollView
+      contentContainerStyle={{ alignItems: 'center', padding: 24 }}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text className="text-5xl mb-1">🎉</Text>
+      <Text className="text-3xl font-bold mb-1" style={{ color: theme.success }}>Level Complete!</Text>
+      <View className="flex-row mb-3" style={{ gap: 4 }}>
+        {[1, 2, 3].map((s) => {
+          const stars = calculateStars(moves, optimalMoves);
+          return (
+            <Text key={s} className="text-2xl" style={{ opacity: s <= stars ? 1 : 0.2 }}>
+              ★
+            </Text>
+          );
+        })}
+        <Text className="text-xs ml-2 self-end mb-1" style={{ color: theme.textSecondary }}>
+          {moves}/{optimalMoves}
+        </Text>
+      </View>
+
+      <View className="w-full flex-row justify-around mb-4">
+        <View className="items-center">
+          <Text className="text-2xl font-bold" style={{ color: theme.text }}>{moves}</Text>
+          <Text className="text-sm" style={{ color: theme.textSecondary }}>Moves</Text>
+        </View>
+        <View className="items-center">
+          <Text className="text-2xl font-bold" style={{ color: theme.text }}>{formatTime(timer)}</Text>
+          <Text className="text-sm" style={{ color: theme.textSecondary }}>Time</Text>
+        </View>
+        <View className="items-center">
+          <Text className="text-2xl font-bold" style={{ color: theme.text }}>{hintsUsed}</Text>
+          <Text className="text-sm" style={{ color: theme.textSecondary }}>Hints</Text>
+        </View>
+      </View>
+
+      <AdPlaceholder />
+
+      <View className="w-full mt-2">
+        <TouchableOpacity
+          className="w-full py-3 rounded-xl items-center mb-3"
+          style={{ backgroundColor: theme.primary, opacity: loadingNext ? 0.6 : 1 }}
+          onPress={handleNextLevel}
+          activeOpacity={0.8}
+          disabled={loadingNext}
+        >
+          <Text className="text-white font-bold text-base">{loadingNext ? 'Loading...' : 'Next Level'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className="w-full py-3 rounded-xl items-center mb-3"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.primary }}
+          onPress={handleReplay}
+          activeOpacity={0.8}
+        >
+          <Text className="font-bold text-base" style={{ color: theme.primary }}>Replay</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className="w-full py-3 rounded-xl items-center"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.textSecondary }}
+          onPress={handleHome}
+          activeOpacity={0.8}
+        >
+          <Text className="font-bold text-base" style={{ color: theme.textSecondary }}>Home</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+
+  // Split-Screen Rotated Landscape View Layout
+  const renderLandscapeVictory = () => (
+    <ScrollView
+      contentContainerStyle={{ padding: 20 }}
+      showsVerticalScrollIndicator={false}
+    >
+      <View className="flex-row w-full items-center justify-between" style={{ gap: 20 }}>
+        {/* Left Column: All Interactive Content & Stats */}
+        <View className="flex-[1.2] justify-center">
+          <View className="flex-row items-center mb-2" style={{ gap: 8 }}>
+            <Text className="text-3xl">🎉</Text>
+            <Text className="text-2xl font-bold" style={{ color: theme.success }}>Level Complete!</Text>
+          </View>
+
+          <View className="flex-row mb-3" style={{ gap: 4 }}>
+            {[1, 2, 3].map((s) => {
+              const stars = calculateStars(moves, optimalMoves);
+              return (
+                <Text key={s} className="text-xl" style={{ opacity: s <= stars ? 1 : 0.2 }}>
+                  ★
+                </Text>
+              );
+            })}
+            <Text className="text-xs ml-2 self-end mb-0.5" style={{ color: theme.textSecondary }}>
+              {moves}/{optimalMoves}
+            </Text>
+          </View>
+
+          <View className="w-full flex-row justify-between mb-4 px-1">
+            <View className="items-center">
+              <Text className="text-xl font-bold" style={{ color: theme.text }}>{moves}</Text>
+              <Text className="text-xs" style={{ color: theme.textSecondary }}>Moves</Text>
+            </View>
+            <View className="items-center">
+              <Text className="text-xl font-bold" style={{ color: theme.text }}>{formatTime(timer)}</Text>
+              <Text className="text-xs" style={{ color: theme.textSecondary }}>Time</Text>
+            </View>
+            <View className="items-center">
+              <Text className="text-xl font-bold" style={{ color: theme.text }}>{hintsUsed}</Text>
+              <Text className="text-xs" style={{ color: theme.textSecondary }}>Hints</Text>
+            </View>
+          </View>
+
+          {/* Action Buttons arranged horizontally to fit the short landscape viewport */}
+          <View className="flex-row space-x-2 w-full mt-1">
+            <TouchableOpacity
+              className="flex-1 py-2.5 rounded-xl items-center"
+              style={{ backgroundColor: theme.primary, opacity: loadingNext ? 0.6 : 1 }}
+              onPress={handleNextLevel}
+              activeOpacity={0.8}
+              disabled={loadingNext}
+            >
+              <Text className="text-white font-bold text-sm">{loadingNext ? 'Loading...' : 'Next'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-1 py-2.5 rounded-xl items-center"
+              style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.primary }}
+              onPress={handleReplay}
+              activeOpacity={0.8}
+            >
+              <Text className="font-bold text-sm" style={{ color: theme.primary }}>Replay</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="flex-1 py-2.5 rounded-xl items-center"
+              style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.textSecondary }}
+              onPress={handleHome}
+              activeOpacity={0.8}
+            >
+              <Text className="font-bold text-sm" style={{ color: theme.textSecondary }}>Home</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Right Column: Ad Segment Column */}
+        <View className="flex-1 items-center justify-center p-2 rounded-2xl" style={{ backgroundColor: theme.background }}>
+          <AdPlaceholder />
+        </View>
+      </View>
+    </ScrollView>
+  );
+
   return (
     <View className="flex-1" style={{ backgroundColor: theme.background, paddingTop: insets.top }}>
+      {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3" style={{ backgroundColor: theme.surface }}>
         <Text className="text-base font-semibold" style={{ color: theme.text }}>
           Level {level}
@@ -273,6 +429,7 @@ export default function GameScreen() {
         </View>
       </View>
 
+      {/* Game Board */}
       <View className="flex-1 justify-center">
         <GameBoard
           tubes={board.tubes}
@@ -285,6 +442,7 @@ export default function GameScreen() {
         />
       </View>
 
+      {/* Control Buttons Footer */}
       <View
         className="flex-row items-center justify-around px-6 py-4"
         style={{ backgroundColor: theme.surface }}
@@ -315,11 +473,12 @@ export default function GameScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Pause Modal */}
       {isPaused && (
         <View className="absolute inset-0 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
           <View
             className="items-center py-10 px-12 rounded-3xl"
-            style={{ backgroundColor: theme.card, width: width * 0.75 }}
+            style={{ backgroundColor: theme.card, width: isLandscape ? width * 0.45 : width * 0.75 }}
           >
             <Text className="text-2xl font-bold mb-8" style={{ color: theme.text }}>PAUSED</Text>
             <TouchableOpacity
@@ -350,74 +509,22 @@ export default function GameScreen() {
         </View>
       )}
 
+      {/* Responsive Victory Modal */}
       {showVictory && (
         <Modal transparent visible={showVictory} animationType="none">
-          <View className="flex-1 items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View className="flex-1 items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
             <Animated.View
-              className="items-center py-10 px-8 rounded-3xl"
               style={{
                 backgroundColor: theme.card,
-                width: width * 0.8,
+                width: isLandscape ? width * 0.85 : width * 0.85,
+                maxHeight: height * 0.9,
                 opacity: victoryOpacity,
                 transform: [{ scale: victoryScale }],
-                padding: 10
+                borderRadius: 24,
+                overflow: 'hidden',
               }}
             >
-              <Text className="text-5xl mb-1">🎉</Text>
-              <Text className="text-3xl font-bold mb-1" style={{ color: theme.success }}>Level Complete!</Text>
-              <View className="flex-row mb-3" style={{ gap: 4 }}>
-                {[1, 2, 3].map((s) => {
-                  const stars = calculateStars(moves, optimalMoves);
-                  return (
-                    <Text key={s} className="text-2xl" style={{ opacity: s <= stars ? 1 : 0.2 }}>
-                      ★
-                    </Text>
-                  );
-                })}
-                <Text className="text-xs ml-2 self-end mb-1" style={{ color: theme.textSecondary }}>
-                  {moves}/{optimalMoves}
-                </Text>
-              </View>
-              <View className="w-full flex-row justify-around mb-4">
-                <View className="items-center">
-                  <Text className="text-2xl font-bold" style={{ color: theme.text }}>{moves}</Text>
-                  <Text className="text-sm" style={{ color: theme.textSecondary }}>Moves</Text>
-                </View>
-                <View className="items-center">
-                  <Text className="text-2xl font-bold" style={{ color: theme.text }}>{formatTime(timer)}</Text>
-                  <Text className="text-sm" style={{ color: theme.textSecondary }}>Time</Text>
-                </View>
-                <View className="items-center">
-                  <Text className="text-2xl font-bold" style={{ color: theme.text }}>{hintsUsed}</Text>
-                  <Text className="text-sm" style={{ color: theme.textSecondary }}>Hints</Text>
-                </View>
-              </View>
-              <AdPlaceholder />
-              <TouchableOpacity
-                className="w-full py-3 rounded-xl items-center mb-3"
-                style={{ backgroundColor: theme.primary, opacity: loadingNext ? 0.6 : 1 }}
-                onPress={handleNextLevel}
-                activeOpacity={0.8}
-                disabled={loadingNext}
-              >
-                <Text className="text-white font-bold text-base">{loadingNext ? 'Loading...' : 'Next Level'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="w-full py-3 rounded-xl items-center mb-3"
-                style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.primary }}
-                onPress={handleReplay}
-                activeOpacity={0.8}
-              >
-                <Text className="font-bold text-base" style={{ color: theme.primary }}>Replay</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="w-full py-3 rounded-xl items-center"
-                style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.textSecondary }}
-                onPress={handleHome}
-                activeOpacity={0.8}
-              >
-                <Text className="font-bold text-base" style={{ color: theme.textSecondary }}>Home</Text>
-              </TouchableOpacity>
+              {isLandscape ? renderLandscapeVictory() : renderPortraitVictory()}
             </Animated.View>
           </View>
         </Modal>
