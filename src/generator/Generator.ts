@@ -7,7 +7,7 @@ import { SeededRNG } from '../utils/rng';
 
 const COLOR_CODES: Color[] = [Color.Red, Color.Blue, Color.Green, Color.Yellow, Color.Purple, Color.Orange, Color.Cyan, Color.Pink];
 let globalSeed = Date.now();
-const DEFAULT_SEED = 42;
+const generatedKeys = new Set<string>();
 
 function createSolvedBoard(colors: number, capacity: number, emptyTubes: number): Board {
   const tubes: Color[][] = [];
@@ -113,6 +113,10 @@ export function generateLevelSync(
     const diff = analyzeDifficulty(board, solution, solution.length);
     if (Math.abs(diff - targetDiff) > 35) continue;
 
+    const key = board.tubes.map(t => t.join('')).sort().join('|');
+    if (generatedKeys.has(key)) continue;
+    generatedKeys.add(key);
+
     const id = nextLevelId();
     return {
       id, world: 1, level: id, colors,
@@ -125,7 +129,13 @@ export function generateLevelSync(
   }
 
   const fallback = generateFallback(colors, capacity, emptyTubes, rng);
-  if (fallback) return fallback;
+  if (fallback) {
+    const key = fallback.board.map(t => t.join('')).sort().join('|');
+    if (!generatedKeys.has(key)) {
+      generatedKeys.add(key);
+      return fallback;
+    }
+  }
 
   const solved = createSolvedBoard(colors, capacity, emptyTubes);
   const id = nextLevelId();

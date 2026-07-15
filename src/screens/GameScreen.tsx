@@ -1,14 +1,15 @@
-// @ts-nocheck
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Animated, Dimensions, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGameStore } from '../store/gameStore';
 import { useLevelStore } from '../store/levelStore';
+import { useStatsStore } from '../store/statsStore';
 import GameBoard from '../components/GameBoard';
 import AdPlaceholder from '../components/AdPlaceholder';
 import { getTheme } from '../utils/themes';
-import { getValidMoves } from '../engine/RuleEngine';
+import { getValidMoves, isSolved } from '../engine/RuleEngine';
+import { calculateStars } from '../types';
 import { useHaptics } from '../hooks/useHaptics';
 import { useSound } from '../hooks/useSound';
 
@@ -27,6 +28,7 @@ export default function GameScreen() {
   const initialBoard = useGameStore((s) => s.initialBoard);
   const selectedTube = useGameStore((s) => s.selectedTube);
   const level = useGameStore((s) => s.level);
+  const optimalMoves = useGameStore((s) => s.optimalMoves);
   const moves = useGameStore((s) => s.moves);
   const timer = useGameStore((s) => s.timer);
   const isPaused = useGameStore((s) => s.isPaused);
@@ -46,6 +48,7 @@ export default function GameScreen() {
   const ensureLevelExists = useLevelStore((s) => s.ensureLevelExists);
   const unlockNextLevel = useLevelStore((s) => s.unlockNextLevel);
   const saveProgress = useLevelStore((s) => s.saveProgress);
+  const recordWin = useStatsStore((s) => s.recordWin);
 
   const { light, medium, heavy } = useHaptics();
   const { playTap, playPour, playWin } = useSound();
@@ -110,6 +113,7 @@ export default function GameScreen() {
       unlockNextLevel();
       saveProgress();
       saveGame();
+      recordWin(level, moves, optimalMoves, timer);
 
       Animated.parallel([
         Animated.spring(victoryScale, {
@@ -359,8 +363,21 @@ export default function GameScreen() {
                 padding: 10
               }}
             >
-              <Text className="text-5xl mb-2">🎉</Text>
-              <Text className="text-3xl font-bold mb-2" style={{ color: theme.success }}>Level Complete!</Text>
+              <Text className="text-5xl mb-1">🎉</Text>
+              <Text className="text-3xl font-bold mb-1" style={{ color: theme.success }}>Level Complete!</Text>
+              <View className="flex-row mb-3" style={{ gap: 4 }}>
+                {[1, 2, 3].map((s) => {
+                  const stars = calculateStars(moves, optimalMoves);
+                  return (
+                    <Text key={s} className="text-2xl" style={{ opacity: s <= stars ? 1 : 0.2 }}>
+                      ★
+                    </Text>
+                  );
+                })}
+                <Text className="text-xs ml-2 self-end mb-1" style={{ color: theme.textSecondary }}>
+                  {moves}/{optimalMoves}
+                </Text>
+              </View>
               <View className="w-full flex-row justify-around mb-4">
                 <View className="items-center">
                   <Text className="text-2xl font-bold" style={{ color: theme.text }}>{moves}</Text>

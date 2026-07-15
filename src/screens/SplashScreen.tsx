@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useGameStore } from '../store/gameStore';
 import { useLevelStore } from '../store/levelStore';
+import { useStatsStore } from '../store/statsStore';
 import { getTheme } from '../utils/themes';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -30,6 +31,7 @@ export default function SplashScreen() {
     const init = async () => {
       await loadProgress();
       await loadGame();
+      await useStatsStore.getState().loadStats();
       if (levels.length === 0) {
         await generateLevels(5);
       }

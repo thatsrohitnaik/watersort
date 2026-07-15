@@ -14,6 +14,7 @@ interface GameStore {
   moveHistory: Move[];
   selectedTube: number | null;
   level: number;
+  optimalMoves: number;
   moves: number;
   timer: number;
   settings: GameSettings;
@@ -54,6 +55,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   moveHistory: [],
   selectedTube: null,
   level: 1,
+  optimalMoves: 0,
   moves: 0,
   timer: -1,
   settings: defaultSettings,
@@ -77,6 +79,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       moveHistory: [],
       selectedTube: null,
       level: levelData.id,
+      optimalMoves: levelData.optimalMoves,
       moves: 0,
       timer: -1,
       hintsUsed: 0,

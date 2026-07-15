@@ -26,13 +26,14 @@ interface TubeProps {
 const TUBE_WIDTH = 52;
 const TUBE_HEIGHT = 200;
 const WRAPPER_PADDING = 8;
-const RIM_HEIGHT = 8;
+const RIM_HEIGHT = 6;
+const SHINE_WIDTH = 8;
 
-const glassTheme: Record<ThemeName, { bg: string; border: string }> = {
-  Classic: { bg: 'rgba(255,255,255,0.12)', border: 'rgba(255,255,255,0.35)' },
-  Neon: { bg: 'rgba(0,0,0,0.25)', border: 'rgba(0,255,255,0.45)' },
-  Dark: { bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.18)' },
-  Candy: { bg: 'rgba(255,255,255,0.15)', border: 'rgba(255,182,193,0.45)' },
+const glassTheme: Record<ThemeName, { bg: string; border: string; shine: string; rim: string }> = {
+  Classic: { bg: 'rgba(255,255,255,0.12)', border: 'rgba(255,255,255,0.35)', shine: 'rgba(255,255,255,0.25)', rim: 'rgba(200,220,255,0.4)' },
+  Neon: { bg: 'rgba(0,0,0,0.25)', border: 'rgba(0,255,255,0.45)', shine: 'rgba(0,255,255,0.2)', rim: 'rgba(0,255,255,0.35)' },
+  Dark: { bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.18)', shine: 'rgba(255,255,255,0.12)', rim: 'rgba(150,150,180,0.3)' },
+  Candy: { bg: 'rgba(255,255,255,0.15)', border: 'rgba(255,182,193,0.45)', shine: 'rgba(255,255,255,0.2)', rim: 'rgba(255,200,210,0.4)' },
 };
 
 const selectedTheme: Record<ThemeName, { border: string; glow: string }> = {
@@ -44,17 +45,9 @@ const selectedTheme: Record<ThemeName, { border: string; glow: string }> = {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-function TubeComponent({
-  tube,
-  capacity = 4,
-  selected,
-  onPress,
-  highlighted = false,
-  theme,
-}: TubeProps) {
+function TubeComponent({ tube, capacity = 4, selected, onPress, highlighted = false, theme }: TubeProps) {
   const segmentHeight = TUBE_HEIGHT / capacity;
 
-  // Shared Values for Reanimated
   const lift = useSharedValue(0);
   const pulse = useSharedValue(1);
 
@@ -63,22 +56,20 @@ function TubeComponent({
   }, [selected, lift]);
 
   useEffect(() => {
+    cancelAnimation(pulse);
     if (highlighted) {
       pulse.value = withRepeat(
         withSequence(
           withTiming(1.04, { duration: 800, easing: Easing.inOut(Easing.ease) }),
           withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) })
         ),
-        -1, // Loop infinitely
+        -1,
         true
       );
     } else {
-      // Safely cancel the repeat animation before resetting
-      cancelAnimation(pulse);
       pulse.value = withTiming(1, { duration: 300 });
     }
-
-    return () => cancelAnimation(pulse); // Cleanup on unmount
+    return () => cancelAnimation(pulse);
   }, [highlighted, pulse]);
 
   const animatedWrapperStyle = useAnimatedStyle(() => ({
@@ -90,14 +81,17 @@ function TubeComponent({
 
   const glass = glassTheme[theme];
   const sel = selectedTheme[theme];
+  const filledHeight = (tube.length / capacity) * TUBE_HEIGHT;
 
-  // Declarative segment generation
   const segments = Array.from({ length: capacity }).map((_, reversedIndex) => {
     const i = capacity - 1 - reversedIndex;
     const color = tube[i];
     const isEmpty = color === undefined;
     const isBottomSegment = i === 0;
-    const isTopFilled = !isEmpty && (i === capacity - 1 || tube[i + 1] === undefined);
+    const isTopmostFilled = !isEmpty && (i === capacity - 1 || tube[i + 1] === undefined);
+    const isSecondFromTop =
+      !isEmpty && i < capacity - 1 && tube[i + 1] === undefined && tube[i + 2] !== undefined;
+    const showMeniscus = isTopmostFilled && tube.length > 1;
 
     return (
       <View
@@ -107,11 +101,14 @@ function TubeComponent({
           { height: segmentHeight },
           !isEmpty && { backgroundColor: getLiquidColor(color, theme) },
           !isEmpty && isBottomSegment && styles.segmentBottomRounded,
-          !isEmpty && isTopFilled && styles.segmentTopRounded,
+          !isEmpty && isTopmostFilled && styles.segmentTopRounded,
+          showMeniscus && styles.meniscus,
         ]}
       />
     );
   });
+
+  const shineHeight = Math.max(filledHeight - 4, 0);
 
   return (
     <AnimatedPressable
@@ -127,23 +124,36 @@ function TubeComponent({
             borderColor: selected ? sel.border : glass.border,
             borderWidth: selected ? 2.5 : 1.5,
           },
-          selected ? {
-            shadowColor: sel.glow,
-            shadowOpacity: 0.6,
-            shadowRadius: 10,
-            shadowOffset: { width: 0, height: 0 },
-            elevation: 10,
-          } : {
-            shadowColor: '#000',
-            shadowOpacity: 0.2,
-            shadowRadius: 4,
-            shadowOffset: { width: 0, height: 2 },
-            elevation: 3,
-          },
+          selected
+            ? {
+                shadowColor: sel.glow,
+                shadowOpacity: 0.6,
+                shadowRadius: 10,
+                shadowOffset: { width: 0, height: 0 },
+                elevation: 10,
+              }
+            : {
+                shadowColor: '#000',
+                shadowOpacity: 0.2,
+                shadowRadius: 4,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 3,
+              },
         ]}
       >
-        <View style={[styles.rim, { backgroundColor: glass.border }]} />
+        <View style={[styles.rim, { backgroundColor: glass.rim }]} />
         <View style={styles.segmentsContainer}>{segments}</View>
+        <View
+          pointerEvents="none"
+          style={[
+            styles.shine,
+            {
+              height: shineHeight,
+              bottom: 2,
+              backgroundColor: glass.shine,
+            },
+          ]}
+        />
       </View>
     </AnimatedPressable>
   );
@@ -187,12 +197,23 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 6,
     borderTopRightRadius: 6,
   },
+  meniscus: {
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  shine: {
+    position: 'absolute',
+    left: 4,
+    width: SHINE_WIDTH,
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 6,
+  },
 });
 
-// Export as Memoized Component
 export default memo(TubeComponent, (prevProps, nextProps) => {
-  // Deep check the tube array to prevent massive re-renders when other tubes change
-  const isTubeEqual = 
+  const isTubeEqual =
     prevProps.tube.length === nextProps.tube.length &&
     prevProps.tube.every((val, index) => val === nextProps.tube[index]);
 
