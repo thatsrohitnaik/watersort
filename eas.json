@@ -14,12 +14,7 @@
     },
     "production": {
       "android": {
-        "buildType": "app-bundle",
-        "gradleProperties": {
-          "org.gradle.jvmargs": "-Xmx4g -XX:MaxMetaspaceSize=512m -XX:+UseParallelGC -XX:+HeapDumpOnOutOfMemoryError",
-          "org.gradle.parallel": "true",
-          "org.gradle.caching": "true"
-        }
+        "buildType": "app-bundle"
       }
     }
   },
