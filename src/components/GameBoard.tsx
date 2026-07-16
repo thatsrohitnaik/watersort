@@ -13,6 +13,9 @@ interface GameBoardProps {
   theme: ThemeName;
 }
 
+const TUBE_WRAPPER_HEIGHT = 224;
+const HEADER_FOOTER_OVERHEAD = 226;
+
 const GameBoard: React.FC<GameBoardProps> = ({
   tubes,
   capacity,
@@ -22,18 +25,32 @@ const GameBoard: React.FC<GameBoardProps> = ({
   highlightedDest,
   theme,
 }) => {
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
-  const availableWidth = screenWidth - 64;
-  const gap = 12;
-  const totalTubes = tubes.length;
+const availableWidth = screenWidth - 64;
+const gap = 12;
+const totalTubes = tubes.length;
 
-  const isSmallScreen = screenWidth < 400;
-  const maxColumns = isSmallScreen ? 2 : totalTubes <= 4 ? totalTubes : Math.ceil(totalTubes / 2);
-  const columns = Math.min(maxColumns, totalTubes);
+const isLandscape = screenWidth > screenHeight;
+const isSmallScreen = screenWidth < 400;
 
-  const itemWidth = Math.floor((availableWidth - (columns - 1) * gap) / columns);
-  const optimizedWidth = Math.min(Math.max(itemWidth, 50), isSmallScreen ? 100 : 85);
+// Allow up to 7 columns in landscape
+const maxColumns = isLandscape
+  ? Math.min(7, totalTubes)
+  : (isSmallScreen ? 3 : 4);
+
+const columns = Math.min(maxColumns, totalTubes);
+const rows = Math.ceil(totalTubes / columns);
+
+const itemWidth = Math.floor(availableWidth / columns) - gap;
+const optimizedWidth = Math.min(Math.max(itemWidth, 50), 120);
+
+const availableHeight = Math.max(screenHeight - HEADER_FOOTER_OVERHEAD, 300);
+const rowHeight = Math.max(Math.floor(availableHeight / rows) - gap, 60);
+const tubeScale = Math.min(
+  1,
+  Math.max(0.35, rowHeight / TUBE_WRAPPER_HEIGHT)
+);
 
   return (
     <View className="flex-row flex-wrap justify-center items-center px-4 py-6 bg-gray-100/50 rounded-3xl mx-4 my-2">
@@ -65,8 +82,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
                 index={index}
                 selected={isSelected}
                 highlighted={isHighlighted}
-                onPress={() => onTubePress(index)} // Fallback if Tube handles its own press events internally
+                onPress={() => onTubePress(index)}
                 theme={theme}
+                scale={tubeScale}
               />
             </Pressable>
           </View>
