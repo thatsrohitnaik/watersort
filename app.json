@@ -35,7 +35,7 @@
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
             "enableMinifyInReleaseBuilds": true,
-            "extraProguardRules": "-keep class expo.modules.** { *; }"
+            "extraProguardRules": "-keep class expo.modules.** { *; }\n-dontwarn expo.modules.**"
           },
           "ios": {
             "deploymentTarget": "16.4"
