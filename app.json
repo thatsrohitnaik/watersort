@@ -34,8 +34,7 @@
           "android": {
             "compileSdkVersion": 36,
             "targetSdkVersion": 36,
-            "enableMinifyInReleaseBuilds": true,
-            "extraProguardRules": "-keep class expo.modules.** { *; }\n-dontwarn expo.modules.**"
+            "enableMinifyInReleaseBuilds": false
           },
           "ios": {
             "deploymentTarget": "16.4"
